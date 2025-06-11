@@ -1,5 +1,7 @@
-import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+
+import React, { useRef, useState } from 'react';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
+import { useDrag } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface PhysicsObjectProps {
@@ -9,6 +11,9 @@ interface PhysicsObjectProps {
   velocity: [number, number, number];
   onPositionUpdate: (id: string, newPosition: [number, number, number], newVelocity: [number, number, number]) => void;
   otherObjects: Array<{ position: [number, number, number]; mass: number; id: string }>;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onMassChange: (id: string, newMass: number) => void;
 }
 
 const PhysicsObject: React.FC<PhysicsObjectProps> = ({ 
@@ -17,14 +22,32 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
   mass, 
   velocity, 
   onPositionUpdate, 
-  otherObjects 
+  otherObjects,
+  isSelected,
+  onSelect,
+  onMassChange
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const velocityRef = useRef<[number, number, number]>(velocity);
   const positionRef = useRef<[number, number, number]>(position);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Drag functionality
+  const bind = useDrag(({ offset: [x, z], dragging }) => {
+    setIsDragging(dragging);
+    if (dragging && isSelected) {
+      const newPos: [number, number, number] = [x, -1.8, z];
+      positionRef.current = newPos;
+      velocityRef.current = [0, 0, 0]; // Stop velocity when dragging
+      if (meshRef.current) {
+        meshRef.current.position.set(newPos[0], newPos[1], newPos[2]);
+      }
+      onPositionUpdate(id, newPos, [0, 0, 0]);
+    }
+  });
 
   useFrame((state, delta) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || isDragging) return;
 
     const currentPos = positionRef.current;
     const currentVel = velocityRef.current;
@@ -93,17 +116,39 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
     onPositionUpdate(id, newPos, currentVel);
   });
 
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    onSelect(id);
+  };
+
   const radius = Math.cbrt(mass) * 0.3;
   const color = mass > 2 ? '#ff6b35' : '#4ecdc4';
 
   return (
-    <mesh ref={meshRef} position={position}>
+    <mesh 
+      ref={meshRef} 
+      position={position}
+      onClick={handleClick}
+      {...bind()}
+      scale={isSelected ? 1.1 : 1}
+    >
       <sphereGeometry args={[radius, 16, 16]} />
       <meshStandardMaterial 
         color={color} 
-        emissive={color}
-        emissiveIntensity={0.2}
+        emissive={isSelected ? color : '#000000'}
+        emissiveIntensity={isSelected ? 0.4 : 0.2}
       />
+      {isSelected && (
+        <mesh>
+          <sphereGeometry args={[radius * 1.2, 16, 16]} />
+          <meshBasicMaterial 
+            color={color}
+            transparent
+            opacity={0.2}
+            wireframe
+          />
+        </mesh>
+      )}
     </mesh>
   );
 };
