@@ -1,7 +1,5 @@
-
 import React, { useRef, useState } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
-import { useDrag } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface PhysicsObjectProps {
@@ -31,20 +29,7 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
   const velocityRef = useRef<[number, number, number]>(velocity);
   const positionRef = useRef<[number, number, number]>(position);
   const [isDragging, setIsDragging] = useState(false);
-
-  // Drag functionality
-  const bind = useDrag(({ offset: [x, z], dragging }) => {
-    setIsDragging(dragging);
-    if (dragging && isSelected) {
-      const newPos: [number, number, number] = [x, -1.8, z];
-      positionRef.current = newPos;
-      velocityRef.current = [0, 0, 0]; // Stop velocity when dragging
-      if (meshRef.current) {
-        meshRef.current.position.set(newPos[0], newPos[1], newPos[2]);
-      }
-      onPositionUpdate(id, newPos, [0, 0, 0]);
-    }
-  });
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 
   useFrame((state, delta) => {
     if (!meshRef.current || isDragging) return;
@@ -116,9 +101,49 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
     onPositionUpdate(id, newPos, currentVel);
   });
 
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     onSelect(id);
+    if (isSelected) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      velocityRef.current = [0, 0, 0]; // Stop velocity when starting drag
+    }
+  };
+
+  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (isDragging && isSelected && dragStart) {
+      e.stopPropagation();
+      
+      // Convert screen movement to world coordinates
+      const deltaX = (e.clientX - dragStart.x) * 0.02;
+      const deltaZ = (e.clientY - dragStart.y) * 0.02;
+      
+      const newPos: [number, number, number] = [
+        positionRef.current[0] + deltaX,
+        -1.8, // Keep on fabric level
+        positionRef.current[2] + deltaZ
+      ];
+      
+      // Apply boundary constraints
+      const boundary = 8;
+      newPos[0] = Math.max(-boundary, Math.min(boundary, newPos[0]));
+      newPos[2] = Math.max(-boundary, Math.min(boundary, newPos[2]));
+      
+      positionRef.current = newPos;
+      if (meshRef.current) {
+        meshRef.current.position.set(newPos[0], newPos[1], newPos[2]);
+      }
+      onPositionUpdate(id, newPos, [0, 0, 0]);
+      
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    setIsDragging(false);
+    setDragStart(null);
   };
 
   const radius = Math.cbrt(mass) * 0.3;
@@ -128,8 +153,9 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
     <mesh 
       ref={meshRef} 
       position={position}
-      onClick={handleClick}
-      {...bind()}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
       scale={isSelected ? 1.1 : 1}
     >
       <sphereGeometry args={[radius, 16, 16]} />
