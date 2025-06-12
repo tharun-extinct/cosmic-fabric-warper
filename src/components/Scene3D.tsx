@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
@@ -23,16 +22,12 @@ const Scene3D: React.FC = () => {
     const newObject: PhysicsObjectData = {
       id: Math.random().toString(36).substr(2, 9),
       position: [
-        (Math.random() - 0.5) * 8,
-        -1.8,
-        (Math.random() - 0.5) * 8
+        (Math.random() - 0.5) * 6,
+        -1.8, // Lock to fabric level
+        (Math.random() - 0.5) * 6
       ],
-      mass: Math.random() * 3 + 0.5,
-      velocity: [
-        (Math.random() - 0.5) * 2,
-        0,
-        (Math.random() - 0.5) * 2
-      ]
+      mass: Math.random() * 5 + 1,
+      velocity: [0, 0, 0] // No initial velocity
     };
 
     setObjects(prev => [...prev, newObject]);
@@ -70,9 +65,9 @@ const Scene3D: React.FC = () => {
   return (
     <div className="relative w-full h-screen bg-black">
       <Canvas camera={{ position: [0, 8, 12], fov: 75 }} onClick={handleCanvasClick}>
-        <ambientLight intensity={0.2} />
-        <pointLight position={[10, 10, 10]} intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} intensity={0.3} />
+        <ambientLight intensity={0.3} />
+        <pointLight position={[10, 10, 10]} intensity={0.6} />
+        <directionalLight position={[5, 5, 5]} intensity={0.4} />
         
         <Stars 
           radius={100} 
@@ -131,19 +126,19 @@ const Scene3D: React.FC = () => {
           <div className="space-y-3">
             <div>
               <label className="text-sm text-emerald-300 block mb-2">
-                Mass: {selectedObject.mass.toFixed(2)}
+                Mass: {selectedObject.mass.toFixed(1)}
               </label>
               <Slider
                 value={[selectedObject.mass]}
                 onValueChange={([value]) => handleMassChange(selectedObject.id, value)}
-                min={0.1}
-                max={5}
-                step={0.1}
+                min={0.5}
+                max={20}
+                step={0.5}
                 className="w-full"
               />
             </div>
             <p className="text-xs text-emerald-300">
-              Click and drag to move the object around the fabric
+              Click and drag to position the object anywhere on the fabric
             </p>
           </div>
         </div>
@@ -153,11 +148,11 @@ const Scene3D: React.FC = () => {
         <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 text-emerald-400 border border-emerald-500/30">
           <h2 className="text-lg font-bold mb-2">Space-Time Fabric Simulation</h2>
           <p className="text-sm">
-            Click "Add Object" to spawn celestial bodies that warp the fabric of spacetime. 
-            Click on objects to select them, then drag to move or adjust their mass with the slider.
+            Click "Add Object" to spawn celestial bodies that warp the entire fabric of spacetime. 
+            Click on objects to select them, then drag to position or adjust mass (up to 20) with the slider.
           </p>
           <p className="text-xs mt-2 text-emerald-300">
-            Objects: {objects.length} | Selected: {selectedObject ? 'Yes' : 'None'} | Use mouse to orbit, zoom, and pan the view
+            Objects: {objects.length} | Selected: {selectedObject ? 'Yes' : 'None'} | Objects are locked to the fabric surface
           </p>
         </div>
       </div>
