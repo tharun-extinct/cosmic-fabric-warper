@@ -1,5 +1,4 @@
 import React from 'react';
-import { CreationTool } from './CreationTool';
 import { useSimulationStore } from '../../store/simulationStore';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -18,7 +17,12 @@ import {
   MousePointer
 } from 'lucide-react';
 
-export const Toolbar: React.FC = () => {
+interface ToolbarProps {
+  creationMode: boolean;
+  onToggleCreation: () => void;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({ creationMode, onToggleCreation }) => {
   const {
     isRunning,
     settings,
@@ -30,12 +34,7 @@ export const Toolbar: React.FC = () => {
     resetSimulation,
     updateSettings,
   } = useSimulationStore();
-  
-  const [creationMode, setCreationMode] = React.useState(false);
 
-  const handleToggleCreation = () => {
-    setCreationMode(!creationMode);
-  };
 
   const handleScreenshot = () => {
     // This would be implemented with canvas.toDataURL()
@@ -55,7 +54,7 @@ export const Toolbar: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                onClick={handleToggleCreation}
+                onClick={onToggleCreation}
                 className={`${
                   creationMode 
                     ? 'bg-emerald-500/30 text-emerald-300 border-emerald-400' 
@@ -206,11 +205,6 @@ export const Toolbar: React.FC = () => {
           </div>
         </div>
       </div>
-      
-      <CreationTool 
-        isActive={creationMode} 
-        onComplete={() => setCreationMode(false)} 
-      />
     </TooltipProvider>
   );
 };

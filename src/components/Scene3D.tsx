@@ -11,6 +11,7 @@ import { AnalyticsPanel } from './UI/AnalyticsPanel';
 import { ExperimentsPanel } from './UI/ExperimentsPanel';
 import { ExportTools } from './UI/ExportTools';
 import { Toolbar } from './UI/Toolbar';
+import { CreationTool } from './UI/CreationTool';
 import * as THREE from 'three';
 
 const PhysicsSimulation: React.FC = () => {
@@ -69,6 +70,8 @@ const Scene3D: React.FC = () => {
     setPanel,
     addBody,
   } = useSimulationStore();
+  
+  const [creationMode, setCreationMode] = React.useState(false);
 
   const handleCanvasClick = (event: any) => {
     if (event.intersections.length === 0) {
@@ -143,9 +146,17 @@ const Scene3D: React.FC = () => {
           maxDistance={30}
           minDistance={5}
         />
+        
+        <CreationTool 
+          isActive={creationMode} 
+          onComplete={() => setCreationMode(false)} 
+        />
       </Canvas>
       
-      <Toolbar />
+      <Toolbar 
+        creationMode={creationMode}
+        onToggleCreation={() => setCreationMode(!creationMode)}
+      />
       <PropertiesPanel />
       <SettingsPanel />
       <AnalyticsPanel />
