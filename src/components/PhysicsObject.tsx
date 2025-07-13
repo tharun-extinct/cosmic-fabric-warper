@@ -37,8 +37,8 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
   useFrame(() => {
     if (!meshRef.current) return;
     
-    // Update mesh position to match physics state (2D - lock Y to 0)
-    meshRef.current.position.set(position[0], 0, position[2]);
+    // Update mesh position to match physics state
+    meshRef.current.position.set(position[0], position[1], position[2]);
   });
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -56,13 +56,13 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
     if (isDragging && dragStart && !useSimulationStore.getState().isRunning) {
       e.stopPropagation();
       
-      // Convert screen movement to world coordinates (2D)
+      // Convert screen movement to world coordinates
       const deltaX = (e.clientX - dragStart.x) * 0.01;
       const deltaZ = (e.clientY - dragStart.y) * 0.01;
       
       const newPos: [number, number, number] = [
         position[0] + deltaX,
-        0, // Lock Y-axis to 0 for 2D
+        -1.8, // Lock Y-axis to fabric level
         position[2] + deltaZ
       ];
       
@@ -97,7 +97,7 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
     <group>
       <mesh 
         ref={meshRef} 
-        position={[position[0], 0, position[2]]}
+        position={position}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -127,7 +127,7 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
           </mesh>
         )}
         
-        {/* Rings (flattened for 2D view) */}
+        {/* Rings */}
         {hasRings && (
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <ringGeometry args={[radius * 1.5, radius * 2.5, 64]} />
@@ -141,17 +141,14 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
         )}
       </mesh>
       
-      {/* Velocity vector (green arrow) - 2D */}
+      {/* Velocity vector (green arrow) */}
       {showVectors && (
-        <group position={[position[0], 0, position[2]]}>
-          <mesh 
-            position={[velocity[0], 0, velocity[2]]}
-            rotation={[0, Math.atan2(velocity[0], velocity[2]), 0]}
-          >
-            <coneGeometry args={[0.05, Math.sqrt(velocity[0]**2 + velocity[2]**2) * 2, 8]} />
-            <meshBasicMaterial color="#00ff00" />
-          </mesh>
-        </group>
+        <mesh>
+          <coneGeometry args={[0.05, Math.sqrt(velocity[0]**2 + velocity[2]**2) * 2, 8]} />
+          <meshBasicMaterial 
+            color="#00ff00"
+          />
+        </mesh>
       )}
     </group>
   );

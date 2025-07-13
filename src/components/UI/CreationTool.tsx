@@ -15,9 +15,10 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
   const [holdTime, setHoldTime] = useState(0);
   const [dragVector, setDragVector] = useState<THREE.Vector3 | null>(null);
   
-  const { camera, raycaster } = useThree();
-  const { addBody, setCreatingObject } = useSimulationStore();
+  const { camera, raycaster, pointer } = useThree();
+  const { addBody } = useSimulationStore();
   const holdStartTime = useRef<number>(0);
+  const previewMeshRef = useRef<THREE.Mesh>(null);
 
   useFrame((state, delta) => {
     if (isCreating && holdStartTime.current > 0) {
@@ -32,12 +33,12 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
     
     raycaster.setFromCamera({ x, y }, camera);
     
-    // Intersect with the 2D plane at y = 0
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    // Intersect with the fabric plane at y = -1.8
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1.8);
     const intersection = new THREE.Vector3();
     raycaster.ray.intersectPlane(plane, intersection);
     
-    return intersection || new THREE.Vector3(0, 0, 0);
+    return intersection || new THREE.Vector3(0, -1.8, 0);
   };
 
   const handleMouseDown = (event: MouseEvent) => {
@@ -51,7 +52,6 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
     setCurrentPosition(worldPos);
     setHoldTime(0);
     holdStartTime.current = performance.now() / 1000;
-    setCreatingObject(true); // Show fabric
   };
 
   const handleMouseMove = (event: MouseEvent) => {
@@ -60,9 +60,8 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
     const worldPos = getWorldPosition(event);
     setCurrentPosition(worldPos);
     
-    // Calculate drag vector for velocity (2D)
+    // Calculate drag vector for velocity
     const dragVec = worldPos.clone().sub(startPosition);
-    dragVec.y = 0; // Keep it 2D
     setDragVector(dragVec);
   };
 
@@ -75,7 +74,7 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
     const mass = Math.max(0.5, Math.min(20, holdTime * 3 + 1));
     const radius = Math.max(0.1, Math.min(2, Math.cbrt(mass) * 0.3));
     
-    // Convert drag vector to velocity (2D)
+    // Convert drag vector to velocity
     const velocity: [number, number, number] = dragVector 
       ? [dragVector.x * 0.5, 0, dragVector.z * 0.5]
       : [0, 0, 0];
@@ -84,10 +83,10 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
     const hue = Math.random() * 360;
     const color = `hsl(${hue}, 70%, 60%)`;
     
-    // Create the body (2D position)
+    // Create the body
     addBody({
       name: `Planet ${Date.now().toString().slice(-4)}`,
-      position: [startPosition.x, 0, startPosition.z],
+      position: [startPosition.x, startPosition.y, startPosition.z],
       velocity,
       mass,
       radius,
@@ -102,7 +101,6 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
     setDragVector(null);
     setHoldTime(0);
     holdStartTime.current = 0;
-    setCreatingObject(false); // Hide fabric
     onComplete();
   };
 
@@ -131,8 +129,8 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
 
   return (
     <group>
-      {/* Preview sphere (2D) */}
-      <mesh position={[startPosition.x, 0, startPosition.z]}>
+      {/* Preview sphere */}
+      <mesh position={[startPosition.x, startPosition.y, startPosition.z]}>
         <sphereGeometry args={[radius, 16, 16]} />
         <meshBasicMaterial 
           color="#ffffff" 
@@ -142,14 +140,14 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
         />
       </mesh>
       
-      {/* Velocity vector preview (2D) */}
+      {/* Velocity vector preview */}
       {dragVector && dragVector.length() > 0.1 && (
         <group>
           {/* Arrow shaft */}
           <mesh 
             position={[
               startPosition.x + dragVector.x * 0.5,
-              0,
+              startPosition.y,
               startPosition.z + dragVector.z * 0.5
             ]}
             rotation={[0, Math.atan2(dragVector.x, dragVector.z), 0]}
@@ -162,7 +160,7 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
           <mesh 
             position={[
               startPosition.x + dragVector.x,
-              0,
+              startPosition.y,
               startPosition.z + dragVector.z
             ]}
             rotation={[0, Math.atan2(dragVector.x, dragVector.z), 0]}
@@ -174,7 +172,7 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
       )}
       
       {/* Mass indicator */}
-      <mesh position={[startPosition.x, radius + 0.5, startPosition.z]}>
+      <mesh position={[startPosition.x, startPosition.y + radius + 0.5, startPosition.z]}>
         <planeGeometry args={[1, 0.2]} />
         <meshBasicMaterial 
           color="#ffffff" 
