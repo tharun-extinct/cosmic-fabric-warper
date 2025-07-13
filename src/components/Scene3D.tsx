@@ -74,14 +74,14 @@ const Scene3D: React.FC = () => {
   const [creationMode, setCreationMode] = React.useState(false);
 
   const handleCanvasClick = (event: any) => {
-    if (event.intersections.length === 0) {
+    if (!event.intersections || event.intersections.length === 0) {
       selectBody(null);
       setPanel('properties', false);
     }
   };
 
   const handleAddBodyAtPosition = (event: any) => {
-    if (event.shiftKey && event.intersections.length === 0) {
+    if (event.shiftKey && (!event.intersections || event.intersections.length === 0)) {
       const point = event.point;
       addBody({
         name: `Planet ${Date.now().toString().slice(-4)}`,
