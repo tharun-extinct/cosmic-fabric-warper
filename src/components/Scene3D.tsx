@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars, Line } from '@react-three/drei';
+import { Stars, Line } from '@react-three/drei';
 import { useSimulationStore } from '../store/simulationStore';
 import { PhysicsEngine } from './Physics/PhysicsEngine';
 import SpaceTimeFabric from './SpaceTimeFabric';
@@ -46,9 +46,9 @@ const PhysicsSimulation: React.FC = () => {
 };
 
 const TrailRenderer: React.FC<{ body: any }> = ({ body }) => {
-  if (!body.trail || body.trail.length < 2) return null;
+  if (!body.trail || body.trail.length < 2 || !useSimulationStore.getState().settings.showTrails) return null;
 
-  const points = body.trail.map(point => new THREE.Vector3(...point));
+  const points = body.trail.map(point => new THREE.Vector3(point[0], 0, point[2]));
   
   return (
     <Line
@@ -80,33 +80,16 @@ const Scene3D: React.FC = () => {
     }
   };
 
-  const handleAddBodyAtPosition = (event: any) => {
-    if (event.shiftKey && (!event.intersections || event.intersections.length === 0)) {
-      const point = event.point;
-      addBody({
-        name: `Planet ${Date.now().toString().slice(-4)}`,
-        position: [point.x, -1.8, point.z],
-        velocity: [0, 0, 0],
-        mass: 2 + Math.random() * 3,
-        radius: 0.3 + Math.random() * 0.4,
-        color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-        hasRings: Math.random() > 0.9,
-      });
-    }
-  };
-
   return (
     <div className="relative w-full h-screen bg-black">
       <Canvas 
-        camera={{ position: [0, 8, 12], fov: 75 }} 
+        camera={{ position: [0, 15, 0], fov: 75 }}
         onClick={handleCanvasClick}
-        onPointerMissed={handleAddBodyAtPosition}
       >
         <PhysicsSimulation />
         
-        <ambientLight intensity={0.3} />
-        <pointLight position={[10, 10, 10]} intensity={0.6} />
-        <directionalLight position={[5, 5, 5]} intensity={0.4} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[0, 10, 0]} intensity={0.8} />
         
         <Stars 
           radius={100} 
@@ -135,17 +118,9 @@ const Scene3D: React.FC = () => {
               onSelect={selectBody}
             />
             
-            {settings.showTrails && <TrailRenderer body={body} />}
+            <TrailRenderer body={body} />
           </group>
         ))}
-        
-        <OrbitControls 
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          maxDistance={30}
-          minDistance={5}
-        />
         
         <CreationTool 
           isActive={creationMode} 
@@ -169,10 +144,10 @@ const Scene3D: React.FC = () => {
       
       <div className="absolute bottom-6 right-6">
         <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 text-emerald-400 border border-emerald-500/30 max-w-sm">
-          <h2 className="text-lg font-bold mb-2">Space-Time Physics Simulator</h2>
+          <h2 className="text-lg font-bold mb-2">2D Space-Time Physics Simulator</h2>
           <p className="text-sm">
-            Use the toolbar to enter creation mode. Click and hold to create bodies, drag to set velocity.
-            Explore guided experiments and unlock achievements!
+            Click the + button to enter creation mode. Press and hold to create bodies, flick to set velocity.
+            Watch the space-time fabric curve during creation!
           </p>
           <p className="text-xs mt-2 text-emerald-300">
             Bodies: {bodies.length} | Physics: {settings.simulationMode} | G: {settings.gravitationalConstant.toExponential(1)}

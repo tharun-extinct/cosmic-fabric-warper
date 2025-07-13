@@ -98,7 +98,7 @@ export class PhysicsEngine {
       // Update position using velocity
       const newPosition: [number, number, number] = [
         body.position[0] + newVelocity[0] * this.timeStep * this.timeMultiplier,
-        Math.max(-1.8, body.position[1] + newVelocity[1] * this.timeStep * this.timeMultiplier), // Lock Y to fabric
+        0, // Lock Y to 0 for 2D simulation
         body.position[2] + newVelocity[2] * this.timeStep * this.timeMultiplier,
       ];
 

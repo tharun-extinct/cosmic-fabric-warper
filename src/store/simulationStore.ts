@@ -65,6 +65,8 @@ interface SimulationState {
   showExperimentsPanel: boolean;
   showExportPanel: boolean;
   showAchievements: boolean;
+  fabricVisible: boolean;
+  creatingObject: boolean;
   
   // Analytics
   analytics: {
@@ -93,6 +95,7 @@ interface SimulationState {
   unlockAchievement: (id: string) => void;
   completeExperiment: (id: string) => void;
   setPanel: (panel: string, show: boolean) => void;
+  setCreatingObject: (creating: boolean) => void;
 }
 
 const defaultSettings: SimulationSettings = {
@@ -201,6 +204,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   showExperimentsPanel: false,
   showExportPanel: false,
   showAchievements: false,
+  fabricVisible: false,
+  creatingObject: false,
   analytics: {
     distanceBetweenSelected: 0,
     orbitalPeriod: 0,
@@ -270,7 +275,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       'solar-system': [
         {
           name: 'Sun',
-          position: [0, -1.8, 0] as [number, number, number],
+          position: [0, 0, 0] as [number, number, number],
           velocity: [0, 0, 0] as [number, number, number],
           mass: 20,
           radius: 1.5,
@@ -279,7 +284,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         },
         {
           name: 'Earth',
-          position: [5, -1.8, 0] as [number, number, number],
+          position: [5, 0, 0] as [number, number, number],
           velocity: [0, 0, 0.3] as [number, number, number],
           mass: 3,
           radius: 0.4,
@@ -288,7 +293,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         },
         {
           name: 'Mars',
-          position: [8, -1.8, 0] as [number, number, number],
+          position: [8, 0, 0] as [number, number, number],
           velocity: [0, 0, 0.25] as [number, number, number],
           mass: 2,
           radius: 0.3,
@@ -299,7 +304,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       'binary-star': [
         {
           name: 'Star A',
-          position: [-3, -1.8, 0] as [number, number, number],
+          position: [-3, 0, 0] as [number, number, number],
           velocity: [0, 0, 0.2] as [number, number, number],
           mass: 15,
           radius: 1.2,
@@ -308,7 +313,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         },
         {
           name: 'Star B',
-          position: [3, -1.8, 0] as [number, number, number],
+          position: [3, 0, 0] as [number, number, number],
           velocity: [0, 0, -0.2] as [number, number, number],
           mass: 12,
           radius: 1.0,
@@ -319,7 +324,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       'planetary-ring': [
         {
           name: 'Central Planet',
-          position: [0, -1.8, 0] as [number, number, number],
+          position: [0, 0, 0] as [number, number, number],
           velocity: [0, 0, 0] as [number, number, number],
           mass: 15,
           radius: 1.0,
@@ -334,7 +339,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
             name: `Ring Particle ${i + 1}`,
             position: [
               Math.cos(angle) * radius,
-              -1.8,
+              0,
               Math.sin(angle) * radius,
             ] as [number, number, number],
             velocity: [
@@ -432,4 +437,6 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   setPanel: (panel, show) => set((state) => ({
     [`show${panel.charAt(0).toUpperCase() + panel.slice(1)}Panel`]: show,
   } as any)),
+
+  setCreatingObject: (creating) => set({ creatingObject: creating }),
 }));
