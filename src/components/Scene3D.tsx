@@ -9,6 +9,7 @@ import { PropertiesPanel } from './UI/PropertiesPanel';
 import { SettingsPanel } from './UI/SettingsPanel';
 import { AnalyticsPanel } from './UI/AnalyticsPanel';
 import { ExperimentsPanel } from './UI/ExperimentsPanel';
+import { ExportTools } from './UI/ExportTools';
 import { Toolbar } from './UI/Toolbar';
 import * as THREE from 'three';
 
@@ -123,15 +124,12 @@ const Scene3D: React.FC = () => {
               position={body.position}
               mass={body.mass}
               velocity={body.velocity}
-              onPositionUpdate={() => {}}
-              otherObjects={bodies}
-              isSelected={body.id === selectedBodyId}
-              onSelect={selectBody}
-              onMassChange={() => {}}
-              color={body.color}
               radius={body.radius}
+              color={body.color}
               name={body.name}
               hasRings={body.hasRings}
+              isSelected={body.id === selectedBodyId}
+              onSelect={selectBody}
             />
             
             {settings.showTrails && <TrailRenderer body={body} />}
@@ -152,12 +150,17 @@ const Scene3D: React.FC = () => {
       <SettingsPanel />
       <AnalyticsPanel />
       <ExperimentsPanel />
+      {useSimulationStore.getState().showExportPanel && (
+        <div className="fixed top-4 right-4 z-50">
+          <ExportTools />
+        </div>
+      )}
       
       <div className="absolute bottom-6 right-6">
         <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 text-emerald-400 border border-emerald-500/30 max-w-sm">
           <h2 className="text-lg font-bold mb-2">Space-Time Physics Simulator</h2>
           <p className="text-sm">
-            Use the toolbar to add bodies and control the simulation. Shift+click to add bodies at specific locations.
+            Use the toolbar to enter creation mode. Click and hold to create bodies, drag to set velocity.
             Explore guided experiments and unlock achievements!
           </p>
           <p className="text-xs mt-2 text-emerald-300">

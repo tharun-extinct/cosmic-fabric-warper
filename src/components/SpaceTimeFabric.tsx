@@ -1,6 +1,7 @@
 
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useSimulationStore } from '../store/simulationStore';
 import * as THREE from 'three';
 
 interface SpaceTimeFabricProps {
@@ -10,6 +11,7 @@ interface SpaceTimeFabricProps {
 const SpaceTimeFabric: React.FC<SpaceTimeFabricProps> = ({ objects }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const originalPositions = useRef<Float32Array>();
+  const { settings } = useSimulationStore();
 
   // Create the fabric grid with higher resolution for better deformation
   const { geometry, material } = useMemo(() => {
@@ -24,11 +26,21 @@ const SpaceTimeFabric: React.FC<SpaceTimeFabricProps> = ({ objects }) => {
       color: '#00ff88',
       wireframe: true,
       transparent: true,
-      opacity: 0.7,
+      opacity: settings.showGrid ? 0.7 : 0,
+      visible: settings.showGrid,
     });
 
     return { geometry, material };
-  }, []);
+  }, [settings.showGrid]);
+
+  // Update material opacity when settings change
+  React.useEffect(() => {
+    if (meshRef.current) {
+      const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = settings.showGrid ? 0.7 : 0;
+      mat.visible = settings.showGrid;
+    }
+  }, [settings.showGrid]);
 
   // Enhanced deformation algorithm that affects the entire plane
   useFrame(() => {

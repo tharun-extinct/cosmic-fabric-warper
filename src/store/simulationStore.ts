@@ -22,6 +22,7 @@ export interface SimulationSettings {
   showTrails: boolean;
   showVectors: boolean;
   showGrid: boolean;
+  fabricTransparent: boolean;
   maxTrailLength: number;
   simulationMode: 'exact' | 'approximate';
 }
@@ -62,6 +63,7 @@ interface SimulationState {
   showPropertiesPanel: boolean;
   showSettingsPanel: boolean;
   showExperimentsPanel: boolean;
+  showExportPanel: boolean;
   showAchievements: boolean;
   
   // Analytics
@@ -100,6 +102,7 @@ const defaultSettings: SimulationSettings = {
   showTrails: true,
   showVectors: false,
   showGrid: true,
+  fabricTransparent: true,
   maxTrailLength: 1000,
   simulationMode: 'exact',
 };
@@ -196,6 +199,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   showPropertiesPanel: false,
   showSettingsPanel: false,
   showExperimentsPanel: false,
+  showExportPanel: false,
   showAchievements: false,
   analytics: {
     distanceBetweenSelected: 0,

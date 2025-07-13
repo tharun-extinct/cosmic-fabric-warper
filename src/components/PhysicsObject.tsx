@@ -1,17 +1,19 @@
 import React, { useRef, useState } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useSimulationStore } from '../store/simulationStore';
 
 interface PhysicsObjectProps {
   id: string;
   position: [number, number, number];
   mass: number;
   velocity: [number, number, number];
-  onPositionUpdate: (id: string, newPosition: [number, number, number], newVelocity: [number, number, number]) => void;
-  otherObjects: Array<{ position: [number, number, number]; mass: number; id: string }>;
+  radius: number;
+  color: string;
+  name: string;
+  hasRings: boolean;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onMassChange: (id: string, newMass: number) => void;
 }
 
 const PhysicsObject: React.FC<PhysicsObjectProps> = ({ 
@@ -19,50 +21,49 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
   position, 
   mass, 
   velocity, 
-  onPositionUpdate, 
-  otherObjects,
+  radius,
+  color,
+  name,
+  hasRings,
   isSelected,
   onSelect,
-  onMassChange
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const positionRef = useRef<[number, number, number]>(position);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [showVectors, setShowVectors] = useState(false);
+  const { updateBody, settings } = useSimulationStore();
 
-  // Remove physics simulation - objects only move when dragged
   useFrame(() => {
-    if (!meshRef.current || isDragging) return;
+    if (!meshRef.current) return;
     
-    // Keep objects locked to fabric level (Y = -1.8)
-    const currentPos = positionRef.current;
-    if (currentPos[1] !== -1.8) {
-      const lockedPos: [number, number, number] = [currentPos[0], -1.8, currentPos[2]];
-      positionRef.current = lockedPos;
-      meshRef.current.position.set(lockedPos[0], lockedPos[1], lockedPos[2]);
-      onPositionUpdate(id, lockedPos, [0, 0, 0]);
-    }
+    // Update mesh position to match physics state
+    meshRef.current.position.set(position[0], position[1], position[2]);
   });
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     onSelect(id);
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    
+    // Only allow dragging if simulation is paused
+    if (!useSimulationStore.getState().isRunning) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
   };
 
   const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (isDragging && dragStart) {
+    if (isDragging && dragStart && !useSimulationStore.getState().isRunning) {
       e.stopPropagation();
       
-      // Convert screen movement to world coordinates with better sensitivity
+      // Convert screen movement to world coordinates
       const deltaX = (e.clientX - dragStart.x) * 0.01;
       const deltaZ = (e.clientY - dragStart.y) * 0.01;
       
       const newPos: [number, number, number] = [
-        positionRef.current[0] + deltaX,
+        position[0] + deltaX,
         -1.8, // Lock Y-axis to fabric level
-        positionRef.current[2] + deltaZ
+        position[2] + deltaZ
       ];
       
       // Apply boundary constraints
@@ -70,11 +71,7 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
       newPos[0] = Math.max(-boundary, Math.min(boundary, newPos[0]));
       newPos[2] = Math.max(-boundary, Math.min(boundary, newPos[2]));
       
-      positionRef.current = newPos;
-      if (meshRef.current) {
-        meshRef.current.position.set(newPos[0], newPos[1], newPos[2]);
-      }
-      onPositionUpdate(id, newPos, [0, 0, 0]);
+      updateBody(id, { position: newPos });
       
       setDragStart({ x: e.clientX, y: e.clientY });
     }
@@ -86,39 +83,74 @@ const PhysicsObject: React.FC<PhysicsObjectProps> = ({
     setDragStart(null);
   };
 
-  // Size based on mass - more visible scaling
-  const radius = Math.cbrt(mass) * 0.4;
-  const color = mass > 10 ? '#ff6b35' : mass > 5 ? '#ffaa35' : '#4ecdc4';
+  const handlePointerEnter = () => {
+    if (settings.showVectors) {
+      setShowVectors(true);
+    }
+  };
+
+  const handlePointerLeave = () => {
+    setShowVectors(false);
+  };
 
   return (
-    <mesh 
-      ref={meshRef} 
-      position={position}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      scale={isSelected ? 1.2 : 1}
-    >
-      <sphereGeometry args={[radius, 32, 32]} />
-      <meshStandardMaterial 
-        color={color} 
-        emissive={isSelected ? color : '#000000'}
-        emissiveIntensity={isSelected ? 0.3 : 0.1}
-        metalness={0.2}
-        roughness={0.4}
-      />
-      {isSelected && (
+    <group>
+      <mesh 
+        ref={meshRef} 
+        position={position}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        scale={isSelected ? 1.2 : 1}
+      >
+        <sphereGeometry args={[radius, 32, 32]} />
+        <meshStandardMaterial 
+          color={color} 
+          emissive={isSelected ? color : '#000000'}
+          emissiveIntensity={isSelected ? 0.3 : 0.1}
+          metalness={0.2}
+          roughness={0.4}
+        />
+        
+        {/* Selection indicator */}
+        {isSelected && (
+          <mesh>
+            <sphereGeometry args={[radius * 1.3, 32, 32]} />
+            <meshBasicMaterial 
+              color={color}
+              transparent
+              opacity={0.3}
+              wireframe
+            />
+          </mesh>
+        )}
+        
+        {/* Rings */}
+        {hasRings && (
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[radius * 1.5, radius * 2.5, 64]} />
+            <meshBasicMaterial 
+              color="#888888"
+              transparent
+              opacity={0.6}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
+      </mesh>
+      
+      {/* Velocity vector (green arrow) */}
+      {showVectors && (
         <mesh>
-          <sphereGeometry args={[radius * 1.3, 32, 32]} />
+          <coneGeometry args={[0.05, Math.sqrt(velocity[0]**2 + velocity[2]**2) * 2, 8]} />
           <meshBasicMaterial 
-            color={color}
-            transparent
-            opacity={0.3}
-            wireframe
+            color="#00ff00"
           />
         </mesh>
       )}
-    </mesh>
+    </group>
   );
 };
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { CreationTool } from './CreationTool';
 import { useSimulationStore } from '../../store/simulationStore';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -13,7 +14,8 @@ import {
   Download,
   Camera,
   Eye,
-  EyeOff
+  EyeOff,
+  MousePointer
 } from 'lucide-react';
 
 export const Toolbar: React.FC = () => {
@@ -26,31 +28,13 @@ export const Toolbar: React.FC = () => {
     setPanel,
     toggleSimulation,
     resetSimulation,
-    addBody,
     updateSettings,
   } = useSimulationStore();
+  
+  const [creationMode, setCreationMode] = React.useState(false);
 
-  const handleAddBody = () => {
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 2 + Math.random() * 4;
-    
-    addBody({
-      name: `Planet ${Date.now().toString().slice(-4)}`,
-      position: [
-        Math.cos(angle) * radius,
-        -1.8,
-        Math.sin(angle) * radius,
-      ],
-      velocity: [
-        -Math.sin(angle) * 0.1 * Math.random(),
-        0,
-        Math.cos(angle) * 0.1 * Math.random(),
-      ],
-      mass: 1 + Math.random() * 5,
-      radius: 0.2 + Math.random() * 0.5,
-      color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-      hasRings: Math.random() > 0.8,
-    });
+  const handleToggleCreation = () => {
+    setCreationMode(!creationMode);
   };
 
   const handleScreenshot = () => {
@@ -71,16 +55,29 @@ export const Toolbar: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                onClick={handleAddBody}
-                className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30"
+                onClick={handleToggleCreation}
+                className={`${
+                  creationMode 
+                    ? 'bg-emerald-500/30 text-emerald-300 border-emerald-400' 
+                    : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                } border border-emerald-500/30`}
                 variant="ghost"
                 size="sm"
               >
-                <Plus className="h-4 w-4" />
+                {creationMode ? (
+                  <MousePointer className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Add celestial body</p>
+              <p>
+                {creationMode 
+                  ? 'Exit creation mode' 
+                  : 'Enter creation mode (Click & hold to create)'
+                }
+              </p>
             </TooltipContent>
           </Tooltip>
 
@@ -194,23 +191,7 @@ export const Toolbar: React.FC = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={handleScreenshot}
-                  className="text-purple-400 hover:bg-purple-500/20"
-                  variant="ghost"
-                  size="sm"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Take screenshot</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleExport}
+                  onClick={() => setPanel('export', true)}
                   className="text-cyan-400 hover:bg-cyan-500/20"
                   variant="ghost"
                   size="sm"
@@ -219,12 +200,17 @@ export const Toolbar: React.FC = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Export data</p>
+                <p>Export tools</p>
               </TooltipContent>
             </Tooltip>
           </div>
         </div>
       </div>
+      
+      <CreationTool 
+        isActive={creationMode} 
+        onComplete={() => setCreationMode(false)} 
+      />
     </TooltipProvider>
   );
 };
