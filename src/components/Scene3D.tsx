@@ -1,70 +1,105 @@
-import React, { useState, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
+import React, { useEffect, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Stars, Line } from '@react-three/drei';
+import { useSimulationStore } from '../store/simulationStore';
+import { PhysicsEngine } from './Physics/PhysicsEngine';
 import SpaceTimeFabric from './SpaceTimeFabric';
 import PhysicsObject from './PhysicsObject';
-import { Slider } from './ui/slider';
+import { PropertiesPanel } from './UI/PropertiesPanel';
+import { SettingsPanel } from './UI/SettingsPanel';
+import { AnalyticsPanel } from './UI/AnalyticsPanel';
+import { ExperimentsPanel } from './UI/ExperimentsPanel';
+import { Toolbar } from './UI/Toolbar';
+import * as THREE from 'three';
 
-interface PhysicsObjectData {
-  id: string;
-  position: [number, number, number];
-  mass: number;
-  velocity: [number, number, number];
-}
+const PhysicsSimulation: React.FC = () => {
+  const {
+    bodies,
+    selectedBodyId,
+    settings,
+    isRunning,
+    updatePhysics,
+    updateAnalytics,
+    selectBody,
+    setPanel,
+    addBody,
+  } = useSimulationStore();
+
+  const physicsEngine = useRef(new PhysicsEngine());
+
+  useEffect(() => {
+    physicsEngine.current.setGravitationalConstant(settings.gravitationalConstant);
+    physicsEngine.current.setTimeMultiplier(settings.timeMultiplier);
+  }, [settings.gravitationalConstant, settings.timeMultiplier]);
+
+  useFrame(() => {
+    if (isRunning && bodies.length > 0) {
+      const updatedBodies = physicsEngine.current.updateBodies(bodies, settings.simulationMode);
+      updatePhysics(updatedBodies);
+      updateAnalytics();
+    }
+  });
+
+  return null;
+};
+
+const TrailRenderer: React.FC<{ body: any }> = ({ body }) => {
+  if (!body.trail || body.trail.length < 2) return null;
+
+  const points = body.trail.map(point => new THREE.Vector3(...point));
+  
+  return (
+    <Line
+      points={points}
+      color={body.color}
+      lineWidth={2}
+      transparent
+      opacity={0.6}
+    />
+  );
+};
 
 const Scene3D: React.FC = () => {
-  const [objects, setObjects] = useState<PhysicsObjectData[]>([]);
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
+  const {
+    bodies,
+    selectedBodyId,
+    settings,
+    selectBody,
+    setPanel,
+    addBody,
+  } = useSimulationStore();
 
-  const selectedObject = objects.find(obj => obj.id === selectedObjectId);
+  const handleCanvasClick = (event: any) => {
+    if (event.intersections.length === 0) {
+      selectBody(null);
+      setPanel('properties', false);
+    }
+  };
 
-  const addRandomObject = useCallback(() => {
-    const newObject: PhysicsObjectData = {
-      id: Math.random().toString(36).substr(2, 9),
-      position: [
-        (Math.random() - 0.5) * 6,
-        -1.8, // Lock to fabric level
-        (Math.random() - 0.5) * 6
-      ],
-      mass: Math.random() * 5 + 1,
-      velocity: [0, 0, 0] // No initial velocity
-    };
-
-    setObjects(prev => [...prev, newObject]);
-  }, []);
-
-  const clearObjects = useCallback(() => {
-    setObjects([]);
-    setSelectedObjectId(null);
-  }, []);
-
-  const updateObjectPosition = useCallback((id: string, newPosition: [number, number, number], newVelocity: [number, number, number]) => {
-    setObjects(prev => prev.map(obj => 
-      obj.id === id 
-        ? { ...obj, position: newPosition, velocity: newVelocity }
-        : obj
-    ));
-  }, []);
-
-  const handleObjectSelect = useCallback((id: string) => {
-    setSelectedObjectId(id);
-  }, []);
-
-  const handleMassChange = useCallback((id: string, newMass: number) => {
-    setObjects(prev => prev.map(obj => 
-      obj.id === id 
-        ? { ...obj, mass: newMass }
-        : obj
-    ));
-  }, []);
-
-  const handleCanvasClick = useCallback(() => {
-    setSelectedObjectId(null);
-  }, []);
+  const handleAddBodyAtPosition = (event: any) => {
+    if (event.shiftKey && event.intersections.length === 0) {
+      const point = event.point;
+      addBody({
+        name: `Planet ${Date.now().toString().slice(-4)}`,
+        position: [point.x, -1.8, point.z],
+        velocity: [0, 0, 0],
+        mass: 2 + Math.random() * 3,
+        radius: 0.3 + Math.random() * 0.4,
+        color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+        hasRings: Math.random() > 0.9,
+      });
+    }
+  };
 
   return (
     <div className="relative w-full h-screen bg-black">
-      <Canvas camera={{ position: [0, 8, 12], fov: 75 }} onClick={handleCanvasClick}>
+      <Canvas 
+        camera={{ position: [0, 8, 12], fov: 75 }} 
+        onClick={handleCanvasClick}
+        onPointerMissed={handleAddBodyAtPosition}
+      >
+        <PhysicsSimulation />
+        
         <ambientLight intensity={0.3} />
         <pointLight position={[10, 10, 10]} intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={0.4} />
@@ -79,21 +114,28 @@ const Scene3D: React.FC = () => {
           speed={1}
         />
         
-        <SpaceTimeFabric objects={objects} />
+        <SpaceTimeFabric objects={bodies} />
         
-        {objects.map(obj => (
-          <PhysicsObject
-            key={obj.id}
-            id={obj.id}
-            position={obj.position}
-            mass={obj.mass}
-            velocity={obj.velocity}
-            onPositionUpdate={updateObjectPosition}
-            otherObjects={objects}
-            isSelected={obj.id === selectedObjectId}
-            onSelect={handleObjectSelect}
-            onMassChange={handleMassChange}
-          />
+        {bodies.map(body => (
+          <group key={body.id}>
+            <PhysicsObject
+              id={body.id}
+              position={body.position}
+              mass={body.mass}
+              velocity={body.velocity}
+              onPositionUpdate={() => {}}
+              otherObjects={bodies}
+              isSelected={body.id === selectedBodyId}
+              onSelect={selectBody}
+              onMassChange={() => {}}
+              color={body.color}
+              radius={body.radius}
+              name={body.name}
+              hasRings={body.hasRings}
+            />
+            
+            {settings.showTrails && <TrailRenderer body={body} />}
+          </group>
         ))}
         
         <OrbitControls 
@@ -105,54 +147,21 @@ const Scene3D: React.FC = () => {
         />
       </Canvas>
       
-      <div className="absolute top-6 left-6 space-y-4">
-        <button
-          onClick={addRandomObject}
-          className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105"
-        >
-          Add Object
-        </button>
-        <button
-          onClick={clearObjects}
-          className="block px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white font-semibold rounded-lg shadow-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105"
-        >
-          Clear All
-        </button>
-      </div>
-
-      {selectedObject && (
-        <div className="absolute top-6 right-6 bg-black/70 backdrop-blur-sm rounded-lg p-4 text-emerald-400 border border-emerald-500/30 w-64">
-          <h3 className="text-lg font-bold mb-3">Object Controls</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm text-emerald-300 block mb-2">
-                Mass: {selectedObject.mass.toFixed(1)}
-              </label>
-              <Slider
-                value={[selectedObject.mass]}
-                onValueChange={([value]) => handleMassChange(selectedObject.id, value)}
-                min={0.5}
-                max={20}
-                step={0.5}
-                className="w-full"
-              />
-            </div>
-            <p className="text-xs text-emerald-300">
-              Click and drag to position the object anywhere on the fabric
-            </p>
-          </div>
-        </div>
-      )}
+      <Toolbar />
+      <PropertiesPanel />
+      <SettingsPanel />
+      <AnalyticsPanel />
+      <ExperimentsPanel />
       
-      <div className="absolute bottom-6 left-6 right-6">
-        <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 text-emerald-400 border border-emerald-500/30">
-          <h2 className="text-lg font-bold mb-2">Space-Time Fabric Simulation</h2>
+      <div className="absolute bottom-6 right-6">
+        <div className="bg-black/70 backdrop-blur-sm rounded-lg p-4 text-emerald-400 border border-emerald-500/30 max-w-sm">
+          <h2 className="text-lg font-bold mb-2">Space-Time Physics Simulator</h2>
           <p className="text-sm">
-            Click "Add Object" to spawn celestial bodies that warp the entire fabric of spacetime. 
-            Click on objects to select them, then drag to position or adjust mass (up to 20) with the slider.
+            Use the toolbar to add bodies and control the simulation. Shift+click to add bodies at specific locations.
+            Explore guided experiments and unlock achievements!
           </p>
           <p className="text-xs mt-2 text-emerald-300">
-            Objects: {objects.length} | Selected: {selectedObject ? 'Yes' : 'None'} | Objects are locked to the fabric surface
+            Bodies: {bodies.length} | Physics: {settings.simulationMode} | G: {settings.gravitationalConstant.toExponential(1)}
           </p>
         </div>
       </div>
