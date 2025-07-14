@@ -128,12 +128,19 @@ export class PhysicsEngine {
 
   // Simple collision detection and response
   private handleCollisions(bodies: CelestialBody[]): CelestialBody[] {
-    const result = [...bodies];
+    const processedIds = new Set<string>();
+    const survivingBodies: CelestialBody[] = [];
+    const mergedBodies: CelestialBody[] = [];
     
-    for (let i = 0; i < result.length; i++) {
-      for (let j = i + 1; j < result.length; j++) {
-        const body1 = result[i];
-        const body2 = result[j];
+    for (let i = 0; i < bodies.length; i++) {
+      const body1 = bodies[i];
+      if (processedIds.has(body1.id)) continue;
+      
+      let hasCollided = false;
+      
+      for (let j = i + 1; j < bodies.length; j++) {
+        const body2 = bodies[j];
+        if (processedIds.has(body2.id)) continue;
 
         const dx = body2.position[0] - body1.position[0];
         const dy = body2.position[1] - body1.position[1];
@@ -142,6 +149,7 @@ export class PhysicsEngine {
 
         // Check for collision
         if (distance < (body1.radius + body2.radius)) {
+          hasCollided = true;
           // Merge smaller body into larger one
           const largerBody = body1.mass >= body2.mass ? body1 : body2;
           const smallerBody = body1.mass < body2.mass ? body1 : body2;
@@ -162,23 +170,23 @@ export class PhysicsEngine {
             velocity: newVelocity,
           };
 
-          // Replace bodies
-          if (body1.mass >= body2.mass) {
-            result[i] = mergedBody;
-            result.splice(j, 1);
-          } else {
-            result[j] = mergedBody;
-            result.splice(i, 1);
-          }
-
-          // Adjust indices after removal
-          j--;
-          if (body1.mass < body2.mass) i--;
+          // Mark both bodies as processed and add the merged body
+          processedIds.add(body1.id);
+          processedIds.add(body2.id);
+          mergedBodies.push(mergedBody);
+          
+          break; // Exit inner loop since body1 has collided
         }
+      }
+      
+      // If body1 didn't collide with anything, it survives
+      if (!hasCollided) {
+        survivingBodies.push(body1);
       }
     }
 
-    return result;
+
+    return [...survivingBodies, ...mergedBodies];
   }
 
   // Calculate orbital period for two-body system
