@@ -99,7 +99,7 @@ interface SimulationState {
 }
 
 const defaultSettings: SimulationSettings = {
-  gravitationalConstant: 6.67430e-11,
+  gravitationalConstant: 2.0, // Increased for stronger NSTMF-like interactions
   timeMultiplier: 1,
   collisionMode: 'merge',
   showTrails: true,

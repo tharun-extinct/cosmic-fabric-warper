@@ -108,8 +108,8 @@ const SpaceTimeFabric: React.FC<SpaceTimeFabricProps> = ({ objects }) => {
         const distance = Math.sqrt((x - objX) ** 2 + (z - objZ) ** 2);
         
         // Enhanced gravitational well formula
-        const baseDeformation = mass * 0.8;
-        const falloffFactor = 0.3;
+        const baseDeformation = mass * 1.2;
+        const falloffFactor = 0.3; // More pronounced wells
         const minimumInfluence = 0.05;
         
         // Create smooth deformation - negative Y for wells

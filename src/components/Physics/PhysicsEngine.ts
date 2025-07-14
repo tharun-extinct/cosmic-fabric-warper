@@ -74,6 +74,8 @@ export class PhysicsEngine {
 
   // Update positions and velocities using Verlet integration
   updateBodies(bodies: CelestialBody[], simulationMode: 'exact' | 'approximate' = 'exact'): CelestialBody[] {
+    if (bodies.length === 0) return bodies;
+    
     // First compute forces
     const bodiesWithForces = simulationMode === 'exact' 
       ? this.computeGravitationalForces(bodies)
@@ -91,7 +93,7 @@ export class PhysicsEngine {
       // Update velocity using acceleration
       const newVelocity: [number, number, number] = [
         body.velocity[0] + acceleration[0] * this.timeStep * this.timeMultiplier,
-        body.velocity[1] + acceleration[1] * this.timeStep * this.timeMultiplier,
+        0, // Lock Y velocity to 0 for 2D
         body.velocity[2] + acceleration[2] * this.timeStep * this.timeMultiplier,
       ];
 
@@ -104,10 +106,10 @@ export class PhysicsEngine {
 
       // Update trail
       const newTrail = [...body.trail];
-      newTrail.push([...newPosition]);
+      newTrail.push([newPosition[0], 0, newPosition[2]]); // Ensure trail is 2D
       
       // Limit trail length
-      const maxTrailLength = 1000;
+      const maxTrailLength = 1000; // Longer trails for better visualization
       if (newTrail.length > maxTrailLength) {
         newTrail.shift();
       }
