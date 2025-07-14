@@ -22,6 +22,7 @@ export interface SimulationSettings {
   showTrails: boolean;
   showVectors: boolean;
   showGrid: boolean;
+  showStars: boolean;
   fabricTransparent: boolean;
   maxTrailLength: number;
   simulationMode: 'exact' | 'approximate';
@@ -105,6 +106,7 @@ const defaultSettings: SimulationSettings = {
   showTrails: true,
   showVectors: false,
   showGrid: true,
+  showStars: true,
   fabricTransparent: true,
   maxTrailLength: 1000,
   simulationMode: 'exact',

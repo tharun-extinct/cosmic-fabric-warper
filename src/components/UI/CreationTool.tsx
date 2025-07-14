@@ -34,7 +34,7 @@ export const CreationTool: React.FC<CreationToolProps> = ({ isActive, onComplete
     const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     
-    raycaster.setFromCamera({ x, y }, camera);
+    raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
     
     // Intersect with the 2D plane at y = 0
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);

@@ -201,6 +201,14 @@ export const SettingsPanel: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between">
+              <Label className="text-emerald-300 text-sm">Show Stars</Label>
+              <Switch
+                checked={settings.showStars}
+                onCheckedChange={(checked) => updateSettings({ showStars: checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
               <Label className="text-emerald-300 text-sm">Fabric Transparency</Label>
               <Switch
                 checked={settings.fabricTransparent}

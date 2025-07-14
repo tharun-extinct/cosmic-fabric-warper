@@ -91,15 +91,17 @@ const Scene3D: React.FC = () => {
         <ambientLight intensity={0.5} />
         <directionalLight position={[0, 10, 0]} intensity={0.8} />
         
-        <Stars 
-          radius={100} 
-          depth={50} 
-          count={5000} 
-          factor={4} 
-          saturation={0.5} 
-          fade={true}
-          speed={1}
-        />
+        {settings.showStars && (
+          <Stars 
+            radius={100} 
+            depth={50} 
+            count={5000} 
+            factor={4} 
+            saturation={0.5} 
+            fade={true}
+            speed={1}
+          />
+        )}
         
         <SpaceTimeFabric objects={bodies} />
         
